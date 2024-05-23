@@ -1,45 +1,55 @@
 import { berlin } from "./utils/berlin-noise";
 
-interface Point { x: number, y: number }
+interface Point { x: number, y: number, opacity: number }
 export class Sky {
-	readonly GAP = 20;
-	readonly AMP = 4;
-	readonly RADIUS = 2;
+	readonly GAP = 30;
+	readonly RADIUS = 1;
+	readonly SCALE = 200;
+	readonly LENGTH = 10
 	ctx: CanvasRenderingContext2D;
-	height: number = 0;
-	dots: any[] = [];
-	time: number = 0;
+	dots: Point[] = [];
 
 	constructor(private el: HTMLCanvasElement) {
 		this.ctx = this.el.getContext("2d")!;
 		this.startAnimate();
 	}
-	getDots() {
+	getDots(): Point[] {
 		const dots = [];
 		for (var x = 4; x < this.el.width; x += this.GAP) {
 			for (var y = 4; y < this.el.height; y += this.GAP) {
-				dots.push({ x, y });
+				dots.push({ x, y, opacity: Math.random() * 0.5 + 0.5 });
 			}
 		}
 		return dots;
 	}
-	randomOpacity({ x, y }: Point) {
-		let value = berlin(x / 50, y / 50, this.time * 0.01);
-		return value = (1 + value) * Math.pow(2, 6);
+	getRandomNoise(x: number, y: number, z: number) {
+		return (berlin(x / this.SCALE, y / this.SCALE, z) - 0.5)
+	}
+	getForce(x: number, y: number, z: number) {
+		return this.getRandomNoise(x, y, z) * 4 * Math.PI
+	}
+	getRadius(x: number, y: number) {
+		const t = +new Date() / 10000;
+		const rad = this.getForce(x, y, t);
+		return rad
+	}
+	randomOpacity({ x, y, opacity }: Point) {
+		const rad = this.getRadius(x, y);
+		return (Math.abs(Math.cos(rad)) * 0.5 + 0.5) * opacity
 	}
 	randomXPosition({ x, y }: Point) {
-		let value2 = berlin(x / 50, y / 50, this.time * 0.01 + 10);
-		return value2 = (1 + value2) * 2 * Math.pow(2, 1);
+		const rad = this.getRadius(x, y);
+		return Math.cos(rad) * this.LENGTH;
 	}
 	randomYPosition({ x, y }: Point) {
-		let value2 = berlin(x / 50, y / 50, this.time * 0.01 + 20);
-		return value2 = (1 + value2) * 2 * Math.pow(2, 1);
+		const rad = this.getRadius(x, y);
+		return Math.sin(rad) * this.LENGTH;
 	}
 	drawDot(p: Point) {
 		const opacity = this.randomOpacity(p)
 		const X = this.randomXPosition(p)
 		const Y = this.randomYPosition(p)
-		this.ctx.fillStyle = `rgba(${opacity},${opacity},${opacity},255)`;
+		this.ctx.fillStyle = `rgba(180,180,180,${opacity})`;
 		this.ctx.beginPath();
 		this.ctx.arc(p.x + X, p.y + Y, this.RADIUS, 0, Math.PI * 2);
 		this.ctx.fill();
@@ -54,7 +64,6 @@ export class Sky {
 	startAnimate() {
 		this.dot();
 		requestAnimationFrame(() => this.startAnimate());
-		this.time += this.AMP
 	}
 }
 
