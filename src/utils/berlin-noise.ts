@@ -111,7 +111,7 @@ function interpolate({
 
 
 const [perm, gradP] = seed(0)
-export function perlin(x, y, z) {
+export function berlin(x, y, z) {
 	// Find unit grid cell containing point
 	var X = Math.floor(x), Y = Math.floor(y), Z = Math.floor(z);
 
