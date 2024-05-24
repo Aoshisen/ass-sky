@@ -7,8 +7,8 @@ let h = window.innerHeight;
 const offsetY = window.scrollY;
 
 const SCALE = 200;
-const LENGTH = 10;
-const SPACING = 15;
+const LENGTH = 20;
+const SPACING = 20;
 const existingPoints = new Set<string>();
 const points: { x: number; y: number; opacity: number }[] = [];
 

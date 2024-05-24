@@ -2,53 +2,42 @@ import { berlin } from "./utils/berlin-noise";
 
 interface Point { x: number, y: number, opacity: number }
 export class Sky {
-	readonly GAP = 30;
-	readonly RADIUS = 1;
+	readonly GAP = 20;
+	readonly RADIUS = 1.5;
 	readonly SCALE = 200;
-	readonly LENGTH = 10
+	readonly LENGTH = 20;
 	ctx: CanvasRenderingContext2D;
-	dots: Point[] = [];
+	dots: Map<string, Point> = new Map();
 
 	constructor(private el: HTMLCanvasElement) {
 		this.ctx = this.el.getContext("2d")!;
+		this.updateDots()
 		this.startAnimate();
 	}
-	getDots(): Point[] {
-		const dots = [];
+	updateDots() {
 		for (var x = 4; x < this.el.width; x += this.GAP) {
 			for (var y = 4; y < this.el.height; y += this.GAP) {
-				dots.push({ x, y, opacity: Math.random() * 0.5 + 0.5 });
+				const opacity = Math.random() * 0.5 + 0.5
+				const key = `${x}-${y}`
+				if (this.dots.get(key))
+					continue;
+				this.dots.set(key, { x, y, opacity, })
 			}
 		}
-		return dots;
 	}
-	getRandomNoise(x: number, y: number, z: number) {
-		return (berlin(x / this.SCALE, y / this.SCALE, z) - 0.5)
+	getForceOnPoint({ x, y }: Point, t: number) {
+		//-180 度 180度
+		return (berlin(x / this.SCALE, y / this.SCALE, t) - 0.5) * 2 * Math.PI;
 	}
-	getForce(x: number, y: number, z: number) {
-		return this.getRandomNoise(x, y, z) * 4 * Math.PI
-	}
-	getRadius(x: number, y: number) {
-		const t = +new Date() / 10000;
-		const rad = this.getForce(x, y, t);
-		return rad
-	}
-	randomOpacity({ x, y, opacity }: Point) {
-		const rad = this.getRadius(x, y);
-		return (Math.abs(Math.cos(rad)) * 0.5 + 0.5) * opacity
-	}
-	randomXPosition({ x, y }: Point) {
-		const rad = this.getRadius(x, y);
-		return Math.cos(rad) * this.LENGTH;
-	}
-	randomYPosition({ x, y }: Point) {
-		const rad = this.getRadius(x, y);
-		return Math.sin(rad) * this.LENGTH;
-	}
+
 	drawDot(p: Point) {
-		const opacity = this.randomOpacity(p)
-		const X = this.randomXPosition(p)
-		const Y = this.randomYPosition(p)
+		const timestamp = + new Date() / 10000;
+		const force = this.getForceOnPoint(p, timestamp);
+		const opacity = (Math.abs(Math.cos(force)) * 0.5 + 0.5) * p.opacity
+		const length = (berlin(p.x / this.SCALE, p.y / this.SCALE, timestamp * 2) + 0.5) * this.LENGTH;
+		const X = Math.cos(force) * length;
+		const Y = Math.sin(force) * length
+
 		this.ctx.fillStyle = `rgba(180,180,180,${opacity})`;
 		this.ctx.beginPath();
 		this.ctx.arc(p.x + X, p.y + Y, this.RADIUS, 0, Math.PI * 2);
@@ -56,12 +45,12 @@ export class Sky {
 	}
 	dot() {
 		this.ctx.clearRect(0, 0, this.el.width, this.el.height);
-		this.dots = this.getDots();
-		this.dots.forEach(dot => {
-			this.drawDot(dot);
-		});
+		for (const dot of this.dots) {
+			this.drawDot(dot[1])
+		}
 	}
 	startAnimate() {
+		this.updateDots()
 		this.dot();
 		requestAnimationFrame(() => this.startAnimate());
 	}

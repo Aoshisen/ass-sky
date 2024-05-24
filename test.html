@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Document</title>
+	<style>
+		body {
+			margin: 0;
+			padding: 0;
+			background-color: black;
+		}
+	</style>
+</head>
+
+<body>
+	<canvas id="canvas"></canvas>
+</body>
+<script id="berlin">
+	class Grad {
+		x;
+		y;
+		z;
+		constructor(x, y, z) {
+			this.x = x;
+			this.y = y;
+			this.z = z
+		}
+		dot2(x, y) {
+			return this.x * x + this.y * y;
+		}
+		dot3(x, y, z) {
+			return this.x * x + this.y * y + this.z * z;
+		}
+	}
+
+	function getGrad3() {
+		const grad3_arr = [
+			[1, 1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0],
+			[1, 0, 1], [-1, 0, 1], [1, 0, -1], [-1, 0, -1],
+			[0, 1, 1], [0, -1, 1], [0, 1, -1], [0, -1, -1]
+		]
+		const grad3 = [];
+		for (const arr of grad3_arr) {
+			const [x, y, z] = arr;
+			grad3.push(new Grad(x, y, z));
+		}
+		return grad3
+	}
+
+	const p = [151, 160, 137, 91, 90, 15,
+		131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23,
+		190, 6, 148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33,
+		88, 237, 149, 56, 87, 174, 20, 125, 136, 171, 168, 68, 175, 74, 165, 71, 134, 139, 48, 27, 166,
+		77, 146, 158, 231, 83, 111, 229, 122, 60, 211, 133, 230, 220, 105, 92, 41, 55, 46, 245, 40, 244,
+		102, 143, 54, 65, 25, 63, 161, 1, 216, 80, 73, 209, 76, 132, 187, 208, 89, 18, 169, 200, 196,
+		135, 130, 116, 188, 159, 86, 164, 100, 109, 198, 173, 186, 3, 64, 52, 217, 226, 250, 124, 123,
+		5, 202, 38, 147, 118, 126, 255, 82, 85, 212, 207, 206, 59, 227, 47, 16, 58, 17, 182, 189, 28, 42,
+		223, 183, 170, 213, 119, 248, 152, 2, 44, 154, 163, 70, 221, 153, 101, 155, 167, 43, 172, 9,
+		129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232, 178, 185, 112, 104, 218, 246, 97, 228,
+		251, 34, 242, 193, 238, 210, 144, 12, 191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107,
+		49, 192, 214, 31, 181, 199, 106, 157, 184, 84, 204, 176, 115, 121, 50, 45, 127, 4, 150, 254,
+		138, 236, 205, 93, 222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66, 215, 61, 156, 180];
+
+	function seed(s) {
+		const grad3 = getGrad3();
+		const perm = new Array(512);
+		const gradP = new Array(512);
+		if (s > 0 && s < 1) {
+			// Scale the s out
+			s *= 65536;
+		}
+
+		s = Math.floor(s);
+		if (s < 256) {
+			s |= s << 8;
+		}
+
+		for (var i = 0; i < 256; i++) {
+			let v;
+			if (i & 1) {
+				v = p[i] ^ (s & 255);
+			} else {
+				v = p[i] ^ ((s >> 8) & 255);
+			}
+
+			perm[i] = perm[i + 256] = v;
+			gradP[i] = gradP[i + 256] = grad3[v % 12];
+		}
+		return [perm, gradP]
+	}
+
+	function fade(t) {
+		return t * t * t * (t * (t * 6 - 15) + 10);
+	}
+	function lerp(a, b, t) {
+		return (1 - t) * a + t * b;
+	}
+
+	function calcNoiseCorners({ X, Y, Z }, { x, y, z }, perm, gradP) {
+		// Calculate noise contributions from each of the eight corners
+		const n000 = gradP[X + perm[Y + perm[Z]]].dot3(x, y, z);
+		const n001 = gradP[X + perm[Y + perm[Z + 1]]].dot3(x, y, z - 1);
+		const n010 = gradP[X + perm[Y + 1 + perm[Z]]].dot3(x, y - 1, z);
+		const n011 = gradP[X + perm[Y + 1 + perm[Z + 1]]].dot3(x, y - 1, z - 1);
+		const n100 = gradP[X + 1 + perm[Y + perm[Z]]].dot3(x - 1, y, z);
+		const n101 = gradP[X + 1 + perm[Y + perm[Z + 1]]].dot3(x - 1, y, z - 1);
+		const n110 = gradP[X + 1 + perm[Y + 1 + perm[Z]]].dot3(x - 1, y - 1, z);
+		const n111 = gradP[X + 1 + perm[Y + 1 + perm[Z + 1]]].dot3(x - 1, y - 1, z - 1);
+		return {
+			n000, n001, n010, n011, n100, n101, n110, n111
+		}
+	}
+
+	function calcCurve(x, y, z) {
+		return { u: fade(x), v: fade(y), w: fade(z) }
+	}
+
+	function interpolate({
+		n000, n001, n010, n011, n100, n101, n110, n111
+	}, {
+		u, v, w
+	}) {
+		return lerp(
+			lerp(
+				lerp(n000, n100, u),
+				lerp(n001, n101, u), w),
+			lerp(
+				lerp(n010, n110, u),
+				lerp(n011, n111, u), w),
+			v);
+	}
+
+	const [perm, gradP] = seed(0);
+
+	function berlin(x, y, z) {
+		// Find unit grid cell containing point
+		var X = Math.floor(x), Y = Math.floor(y), Z = Math.floor(z);
+
+		// Get relative xyz coordinates of point within that cell
+		x = x - X; y = y - Y; z = z - Z;
+
+		// Wrap the integer cells at 255 (smaller integer period can be introduced here)
+		X = X & 255; Y = Y & 255; Z = Z & 255;
+		const corners = calcNoiseCorners({
+			X, Y, Z
+		}, { x, y, z }, perm, gradP)
+
+		// Compute the fade curve value for x, y, z
+		const curves = calcCurve(x, y, z)
+
+		// Interpolate
+		return interpolate(corners, curves)
+	}
+
+</script>
+<script id="sky">
+	class Sky {
+		GAP = 20;
+		RADIUS = 1.5;
+		SCALE = 200;
+		LENGTH = 20;
+		ctx;
+		el;
+		dots = new Map();
+		constructor(el) {
+			this.el = el;
+			this.ctx = el.getContext("2d");
+			this.updateDots()
+			this.startAnimate();
+		}
+		updateDots() {
+			for (var x = 4; x < this.el.width; x += this.GAP) {
+				for (var y = 4; y < this.el.height; y += this.GAP) {
+					const opacity = Math.random() * 0.5 + 0.5
+					const key = `${x}-${y}`
+					if (this.dots.get(key))
+						continue;
+					this.dots.set(key, { x, y, opacity, })
+				}
+			}
+		}
+		getForceOnPoint({ x, y }, t) {
+			//-180 度 180度
+			return (berlin(x / this.SCALE, y / this.SCALE, t) - 0.5) * 2 * Math.PI;
+		}
+
+		drawDot(p) {
+			const timestamp = + new Date() / 10000;
+			const force = this.getForceOnPoint(p, timestamp);
+			const opacity = (Math.abs(Math.cos(force)) * 0.5 + 0.5) * p.opacity
+			const length = (berlin(p.x / this.SCALE, p.y / this.SCALE, timestamp * 2) + 0.5) * this.LENGTH;
+			const X = Math.cos(force) * length;
+			const Y = Math.sin(force) * length
+
+			this.ctx.fillStyle = `rgba(180,180,180,${opacity})`;
+			this.ctx.beginPath();
+			this.ctx.arc(p.x + X, p.y + Y, this.RADIUS, 0, Math.PI * 2);
+			this.ctx.fill();
+		}
+		dot() {
+			this.ctx.clearRect(0, 0, this.el.width, this.el.height);
+			for (const dot of this.dots) {
+				this.drawDot(dot[1])
+			}
+		}
+		startAnimate() {
+			this.updateDots()
+			this.dot();
+			requestAnimationFrame(() => this.startAnimate());
+		}
+	}
+</script>
+<script>
+	const canvasEl = document.getElementById('canvas');
+	function updateCanvasSize() {
+		canvasEl.width = window.innerWidth;
+		canvasEl.height = window.innerHeight;
+	}
+	window.addEventListener("resize", updateCanvasSize)
+	window.addEventListener("load", updateCanvasSize)
+	new Sky(canvasEl)
+</script>
+
+</html>
