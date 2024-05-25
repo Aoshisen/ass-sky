@@ -1,4 +1,5 @@
-import { berlin } from "./utils/berlin-noise";
+import { berlin } from "../utils/berlin-noise";
+import { A } from "./A"
 
 interface Point { x: number, y: number, opacity: number }
 export class Sky {
@@ -6,13 +7,15 @@ export class Sky {
 	readonly RADIUS = 1.5;
 	readonly SCALE = 200;
 	readonly LENGTH = 20;
+	readonly A;
 	ctx: CanvasRenderingContext2D;
 	dots: Map<string, Point> = new Map();
 
 	constructor(private el: HTMLCanvasElement) {
 		this.ctx = this.el.getContext("2d")!;
+		this.A = new A(400, this.el)
 		this.updateDots()
-		this.startAnimate();
+		// this.startAnimate();
 	}
 	updateDots() {
 		for (var x = 4; x < this.el.width; x += this.GAP) {
@@ -40,7 +43,11 @@ export class Sky {
 
 		this.ctx.fillStyle = `rgba(180,180,180,${opacity})`;
 		this.ctx.beginPath();
+
 		this.ctx.arc(p.x + X, p.y + Y, this.RADIUS, 0, Math.PI * 2);
+		if (this.A.checkIsPointInA(p)) {
+			this.ctx.arc(p.x + X, p.y + Y, this.RADIUS, 0, Math.PI * 2);
+		}
 		this.ctx.fill();
 	}
 	dot() {

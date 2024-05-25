@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { Sky } from "./sky.ts";
+import { Sky } from "../libs/sky.ts";
 const canvasEl = ref<HTMLCanvasElement>();
 const width = ref(window.innerWidth);
 const height = ref(window.innerHeight);
