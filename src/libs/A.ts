@@ -4,23 +4,17 @@ interface Point {
 	skip?: boolean;
 }
 export class A {
-	readonly WEIGHT = 20;
+	readonly WEIGHT = 50;
 	readonly THETA = Math.PI / 5 * 2;
 	readonly OFFSET: Point = { x: 200, y: 200 }
 	readonly SPLIT_SCALE = 1 / 2;
-	imageData: ImageData
 	dots = new Map<number, Point>();
-	ctx: CanvasRenderingContext2D;
 
-	constructor(private height: number, private el: HTMLCanvasElement) {
-		this.ctx = this.el.getContext("2d")!;
-		this.imageData = this.ctx.createImageData(this.el.width, this.el.height)
+	constructor(private height: number) {
 		this.init()
 	}
 	init() {
 		this.getADots()
-		// this.draw()
-		this.drawImage()
 	}
 	private getADots() {
 		const P1x = this.height / Math.tan(this.THETA)
@@ -64,48 +58,6 @@ export class A {
 			this.dots.set(index, dot)
 		})
 	}
-	draw() {
-		let currentPoint: Point;
-		let nextPoint: Point;
-		for (const dot of this.dots) {
-			const nextDot = this.dots.get(dot[0] + 1) || this.dots.get(0)!;
-			const currentDot = dot[1]
-			if (!currentDot.skip) {
-				currentPoint = currentDot;
-			}
-			if (nextDot.skip) {
-				continue;
-			}
-			nextPoint = nextDot
-
-			this.line(currentPoint!, nextPoint);
-		}
-	}
-	drawImage() {
-		for (var x = 0; x < this.el.width; x++) {
-			for (var y = 0; y < this.el.height; y++) {
-				const value = 255
-				if(this.checkIsPointInA({x,y})){
-					continue;
-				}
-				var cell = (x + y * this.el.width) * 4;
-				this.imageData.data[cell] = this.imageData.data[cell + 1] = this.imageData.data[cell + 2] = value;
-				this.imageData.data[cell + 3] = 255; // alpha.
-			}
-		}
-		this.ctx.fillStyle = 'black';
-		this.ctx.fillRect(0, 0, 100, 100);
-		this.ctx.putImageData(this.imageData, 0, 0);
-	}
-	private line(start: Point, end: Point) {
-		//draw line with start point and end point,set line to white
-		this.ctx.strokeStyle = "white"
-		this.ctx.beginPath();
-		this.ctx.moveTo(start.x + this.OFFSET.x, start.y + this.OFFSET.y);
-		this.ctx.lineTo(end.x + this.OFFSET.x, end.y + this.OFFSET.y);
-		this.ctx.stroke();
-
-	}
 	checkIsPointInA(P: Point) {
 		//三角形
 		P = { x: P.x - this.OFFSET.x, y: P.y - this.OFFSET.y }
@@ -131,7 +83,6 @@ export class A {
 		}
 		return false;
 	}
-
 	private checkIsInParallelogram(r: Point[], P: Point) {
 		//使用叉积法来判断p是否在t 这四个点组成的平行四边形中
 		const [A, B, C, D] = r;

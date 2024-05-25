@@ -3,7 +3,7 @@ import { A } from "./A"
 
 interface Point { x: number, y: number, opacity: number }
 export class Sky {
-	readonly GAP = 20;
+	readonly GAP = 15;
 	readonly RADIUS = 1.5;
 	readonly SCALE = 200;
 	readonly LENGTH = 20;
@@ -13,7 +13,7 @@ export class Sky {
 
 	constructor(private el: HTMLCanvasElement) {
 		this.ctx = this.el.getContext("2d")!;
-		this.A = new A(400, this.el)
+		this.A = new A(400)
 		this.updateDots()
 		this.startAnimate();
 	}
@@ -41,13 +41,15 @@ export class Sky {
 		const X = Math.cos(force) * length;
 		const Y = Math.sin(force) * length
 
-		this.ctx.fillStyle = `rgba(180,180,180,${opacity})`;
 		this.ctx.beginPath();
-
-		this.ctx.arc(p.x + X, p.y + Y, this.RADIUS, 0, Math.PI * 2);
 		if (this.A.checkIsPointInA(p)) {
+			this.ctx.fillStyle = `rgba(180,180,180,${p.opacity})`;
+			this.ctx.arc(p.x, p.y, this.RADIUS, 0, Math.PI * 2);
+		} else {
+			this.ctx.fillStyle = `rgba(180,180,180,${opacity})`;
 			this.ctx.arc(p.x + X, p.y + Y, this.RADIUS, 0, Math.PI * 2);
 		}
+
 		this.ctx.fill();
 	}
 	dot() {
