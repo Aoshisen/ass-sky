@@ -8,16 +8,19 @@ export class A {
 	readonly THETA = Math.PI / 5 * 2;
 	readonly OFFSET: Point = { x: 200, y: 200 }
 	readonly SPLIT_SCALE = 1 / 2;
+	imageData: ImageData
 	dots = new Map<number, Point>();
 	ctx: CanvasRenderingContext2D;
 
 	constructor(private height: number, private el: HTMLCanvasElement) {
 		this.ctx = this.el.getContext("2d")!;
+		this.imageData = this.ctx.createImageData(this.el.width, this.el.height)
 		this.init()
 	}
 	init() {
 		this.getADots()
-		this.draw()
+		// this.draw()
+		this.drawImage()
 	}
 	private getADots() {
 		const P1x = this.height / Math.tan(this.THETA)
@@ -78,6 +81,22 @@ export class A {
 			this.line(currentPoint!, nextPoint);
 		}
 	}
+	drawImage() {
+		for (var x = 0; x < this.el.width; x++) {
+			for (var y = 0; y < this.el.height; y++) {
+				const value = 255
+				if(this.checkIsPointInA({x,y})){
+					continue;
+				}
+				var cell = (x + y * this.el.width) * 4;
+				this.imageData.data[cell] = this.imageData.data[cell + 1] = this.imageData.data[cell + 2] = value;
+				this.imageData.data[cell + 3] = 255; // alpha.
+			}
+		}
+		this.ctx.fillStyle = 'black';
+		this.ctx.fillRect(0, 0, 100, 100);
+		this.ctx.putImageData(this.imageData, 0, 0);
+	}
 	private line(start: Point, end: Point) {
 		//draw line with start point and end point,set line to white
 		this.ctx.strokeStyle = "white"
@@ -89,7 +108,7 @@ export class A {
 	}
 	checkIsPointInA(P: Point) {
 		//三角形
-		P = { x: P.x + this.OFFSET.x, y: P.y + this.OFFSET.y }
+		P = { x: P.x - this.OFFSET.x, y: P.y - this.OFFSET.y }
 		const isInTriangle = this.checkIsInTriangle([this.dots.get(0)!, this.dots.get(1)!, this.dots.get(12)!], P)
 		const isInLeftParallelogram = this.checkIsInParallelogram([this.dots.get(1)!, this.dots.get(2)!, this.dots.get(3)!, this.dots.get(9)!], P)
 		const isInLeftSplitParallelogram = this.checkIsInParallelogram([this.dots.get(4)!, this.dots.get(5)!, this.dots.get(6)!, this.dots.get(8)!], P)
@@ -97,42 +116,44 @@ export class A {
 		return isInTriangle || isInLeftParallelogram || isInLeftSplitParallelogram || isInRightParallelogram
 	}
 	private checkIsInTriangle(t: Point[], P: Point) {
-		P = { x: P.x + this.OFFSET.x, y: P.y + this.OFFSET.y }
 		//使用叉积法来判断p是否在t 这三个点组成的三角形中
 		const [A, B, C] = t
 		//AB *AP
-		const ABAP = this.crossProduct(B.x - A.x, B.y - A.y, P.x - A.x, P.y - A.y)
+		const ABAP = this.calc(A, B, P)
 		//BC * BP
-		const BCBP = this.crossProduct(C.x - B.x, C.y - B.y, P.x - B.x, P.y - B.y)
+		const BCBP = this.calc(B, C, P)
 		//CA*CP
-		const CACP = this.crossProduct(A.x - C.x, A.y - C.y, P.x - C.x, P.y - C.y)
+		const CACP = this.calc(C, A, P)
 
 		//如果ABAP BCBP CACP 都是一样的符号,那么返回true ,
 		if (ABAP * BCBP > 0 && ABAP * CACP > 0) {
 			return true;
 		}
 		return false;
+	}
 
-	}
-	private crossProduct(x1: number, y1: number, x2: number, y2: number) {
-		return x1 * y2 - x2 * y1
-	}
 	private checkIsInParallelogram(r: Point[], P: Point) {
 		//使用叉积法来判断p是否在t 这四个点组成的平行四边形中
-		const [A, B, C, D] = r
+		const [A, B, C, D] = r;
 		//AB *AP
-		const ABAP = this.crossProduct(B.x - A.x, B.y - A.y, P.x - A.x, P.y - A.y)
+		const ABAP = this.calc(A, B, P);
 		//BC * BP
-		const BCBP = this.crossProduct(C.x - B.x, C.y - B.y, P.x - B.x, P.y - B.y)
+		const BCBP = this.calc(B, C, P);
 		//CD *CP
-		const CDCP = this.crossProduct(D.x - C.x, D.y - C.y, P.x - C.x, P.y - C.y)
+		const CDCP = this.calc(C, D, P);
 		//DA*DP
-		const DADP = this.crossProduct(A.x - D.x, A.y - D.y, P.x - D.x, P.y - D.y)
+		const DADP = this.calc(D, A, P);
 
 		//如果ABAP BCBP CDCP  DADP都是一样的符号,那么返回true ,
 		if (ABAP * BCBP > 0 && ABAP * CDCP > 0 && ABAP * DADP > 0) {
 			return true;
 		}
 		return false;
+	}
+	private calc(A: Point, B: Point, P: Point) {
+		return this.crossProduct(B.x - A.x, B.y - A.y, P.x - A.x, P.y - A.y)
+	}
+	private crossProduct(x1: number, y1: number, x2: number, y2: number) {
+		return x1 * y2 - x2 * y1
 	}
 }

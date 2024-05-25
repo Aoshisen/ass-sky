@@ -15,7 +15,7 @@ export class Sky {
 		this.ctx = this.el.getContext("2d")!;
 		this.A = new A(400, this.el)
 		this.updateDots()
-		// this.startAnimate();
+		this.startAnimate();
 	}
 	updateDots() {
 		for (var x = 4; x < this.el.width; x += this.GAP) {
